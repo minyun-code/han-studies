@@ -1,0 +1,50 @@
+# Local archives, original Git metadata, and private migration records
+/.local/
+/releases/
+
+# Dependencies and generated files in every project
+node_modules/
+.next/
+out/
+dist/
+build/
+.strapi/
+.cache/
+.npm/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+.strapi-updater.json
+.strapi-cloud.json
+
+# Local environment and runtime data
+.env
+.env.*
+!.env.example
+!.env.*.example
+.tmp/
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+*.log
+*.pid
+*.pem
+*.key
+
+# Backend uploads remain available locally; do not publish runtime data
+/backend/public/uploads/*
+!/backend/public/uploads/.gitkeep
+
+# Editor and machine-specific state
+.vercel/
+.cursor/
+.trae/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.zip
+*.7z
+*.rar

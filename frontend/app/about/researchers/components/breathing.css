@@ -1,0 +1,77 @@
+@keyframes glowSweep {
+  0% {
+    left: -60%;
+    opacity: 0;
+    transform: scale(1) skewX(-15deg);
+  }
+  50% {
+    left: 50%;
+    opacity: 1;
+    transform: scale(1.5) skewX(-15deg);
+  }
+  100% {
+    left: 120%;
+    opacity: 0;
+    transform: scale(1) skewX(-15deg);
+  }
+}
+
+@keyframes pulseGlow {
+  0% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1.2);
+    opacity: 0.9;
+  }
+}
+
+.breathing-card {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.3s ease;
+  z-index: 0;
+}
+
+/* 蓝光背景，增强一点对比 */
+.breathing-card::before {
+  content: "";
+  position: absolute;
+  inset: -20px;
+  background: radial-gradient(
+    circle at center,
+    rgba(100, 180, 255, 0.45),
+    rgba(0, 100, 200, 0.3),
+    transparent 80%
+  );
+  filter: blur(70px) contrast(1.6);
+  z-index: -2;
+  animation: pulseGlow 9s ease-in-out infinite alternate;
+  border-radius: 2rem;
+}
+
+/* 冷白蓝扫光 */
+.breathing-card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 120px;
+  left: -100px;
+  background: linear-gradient(
+    120deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(210, 235, 255, 0.95) 50%,
+    rgba(200, 230, 255, 0.3) 100%
+  );
+  animation: glowSweep 2.2s ease-in-out infinite;
+  filter: blur(12px);
+  transform: skewX(-15deg);
+  z-index: -1;
+}
+
+/* Hover 微缩放 */
+.breathing-card:hover {
+  transform: scale(1.03);
+}

@@ -1,0 +1,46 @@
+/* 🌟 让整个分页圆点更现代化，使用蓝白渐变 */
+.swiper-pagination-bullet {
+  width: 12px;
+  height: 12px;
+  background: linear-gradient(45deg, #2196F3, #E3F2FD); /* 深蓝到浅蓝 */
+  border-radius: 50%;
+  opacity: 0.7;
+  transition: all 0.3s ease-in-out;
+}
+
+/* 🌟 选中的圆点更大，颜色更亮 */
+.swiper-pagination-bullet-active {
+  width: 14px;
+  height: 14px;
+  opacity: 0.4;
+  background: linear-gradient(45deg, #E3F2FD, #FFFFFF); /* 深蓝到浅蓝 */
+  transform: scale(1.2);
+}
+
+/* 🌟 让箭头按钮更精致 */
+.swiper-button-prev,
+.swiper-button-next {
+  color: white !important;
+  font-size: 20px !important;
+  background: rgba(0, 0, 0, 0.3);
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease-in-out;
+}
+
+/* 🌟 让箭头在圆形内居中 */
+.swiper-button-prev::after,
+.swiper-button-next::after {
+  font-size: 20px !important;
+  margin-left: 1px;
+}
+
+/* 🌟 悬停时增强对比 */
+.swiper-button-prev:hover,
+.swiper-button-next:hover {
+  background: rgba(0, 0, 0, 0.6);
+}

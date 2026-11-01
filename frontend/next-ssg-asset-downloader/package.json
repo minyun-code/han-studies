@@ -1,0 +1,42 @@
+{
+  "name": "next-ssg-asset-downloader",
+  "version": "0.0.1",
+  "description": "A Next.js plugin to download backend URL resources to frontend folders during SSG pre-build rendering",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "prepublishOnly": "npm run build",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "nextjs",
+    "ssg",
+    "static-site-generation",
+    "asset-downloader",
+    "webpack-plugin",
+    "next-plugin"
+  ],
+  "author": "zwzwz1",
+  "license": "MIT",
+  "peerDependencies": {
+    "next": ">=12.0.0"
+  },
+  "dependencies": {
+    "fs-extra": "^11.2.0",
+    "node-fetch": "^3.3.2",
+    "path": "^0.12.7"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "package.json"
+  ]
+
+}

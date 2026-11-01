@@ -1,0 +1,84 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --font-geist-sans: 'Inter', sans-serif;
+  --font-geist-mono: 'Fira Code', monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+/* 重置页面边距 */
+html, body {
+  margin: 0;
+  padding: 0;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+/* 确保body从页面顶部开始 */
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Arial, Helvetica, sans-serif;
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+body {
+  background-image: url('/images/background.png'); /* 这里路径要匹配你的目录 */
+  background-size: cover; /* 让背景适应整个屏幕 */
+  background-position: center; /* 居中显示 */
+  background-repeat: no-repeat; /* 不重复 */
+  background-attachment: fixed; /* 让背景固定，不随滚动动 */
+}
+
+/* 隐藏全局滚动条 */
+::-webkit-scrollbar {
+  display: none;
+}
+
+@font-face {
+  font-family: "WangHanZong";
+  src: url("/fonts/WangHanZong.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'AoyagiReisyo';
+  src: url('/fonts/AoyagiReisyo.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'KouzanGyousho';
+  src: url('/fonts/KouzanGyousho.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 首页特殊处理 */
+.home-content {
+  margin-top: -10px; /* 负边距使首页内容上移 */
+}
+
+
+
+
+
+
+
+

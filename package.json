@@ -1,0 +1,17 @@
+{
+  "name": "waseda-hanstudies-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Next.js frontend and Strapi backend for Waseda Han Studies",
+  "scripts": {
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:backend": "npm --prefix backend run develop",
+    "build:frontend": "npm --prefix frontend run build",
+    "build:backend": "npm --prefix backend run build",
+    "sync:uploads": "node scripts/sync-uploads.cjs",
+    "preview": "node scripts/preview-static.cjs"
+  },
+  "engines": {
+    "node": ">=18.0.0 <=22.x.x"
+  }
+}
