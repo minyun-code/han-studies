@@ -32,6 +32,13 @@
     "node": ">=18.0.0 <=22.x.x",
     "npm": ">=6.0.0"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@swc/core",
+      "better-sqlite3",
+      "esbuild"
+    ]
+  },
   "strapi": {
     "uuid": "7d20cd00-1c01-41d3-bbb3-667a49ef5cad"
   }

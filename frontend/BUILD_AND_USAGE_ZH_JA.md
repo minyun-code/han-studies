@@ -1,11 +1,11 @@
 # 打包逻辑与使用说明 / ビルドと利用ガイド
 
 适用项目 / 対象：早稲田大学漢学研究所（`waseda-hanstudies`）  
-核对日期 / 確認日：2026-11-01
+核对日期 / 確認日：2026-11-02
 
-本文依据当前源码、已安装插件和配置编写。本文中的安装、启动、复制和构建命令供使用者执行；迁移后尚未重新执行依赖安装、资源实际复制或完整构建，不能将文档步骤视为新环境已验证通过。**所有命令均从仓库根目录运行**，即同时包含 `frontend/`、`backend/`、`scripts/` 和根 `package.json` 的目录。仓库可整体移动，不要求固定盘符或父目录；命令块使用 PowerShell。
+本文依据当前源码、已安装插件和配置编写。本文中的安装、启动、复制和构建命令供使用者执行；文档步骤不能替代实际验证，后端启动和完整构建是否成功应以执行结果为准。**所有命令均从仓库根目录运行**，即同时包含 `frontend/`、`backend/`、`scripts/` 和根 `package.json` 的目录。仓库可整体移动，不要求固定盘符或父目录；命令块使用 PowerShell。
 
-この文書は、現在のソース、インストール済みプラグイン、設定に基づいています。記載したインストール、起動、コピー、ビルドは利用者向けの手順です。移動後の依存関係の再インストール、アセットの実コピー、完全なビルドは未実行であり、新しい環境での動作確認が完了したことを意味しません。**すべてのコマンドはリポジトリのルートから実行します**。ルートは `frontend/`、`backend/`、`scripts/` とルートの `package.json` があるディレクトリです。リポジトリ全体を移動しても、特定のドライブや親ディレクトリに依存しません。コマンド例は PowerShell 用です。
+この文書は、現在のソース、インストール済みプラグイン、設定に基づいています。記載したインストール、起動、コピー、ビルドは利用者向けの手順であり、実際の検証に代わるものではありません。バックエンドの起動と完全なビルドの成否は、実行結果で確認してください。**すべてのコマンドはリポジトリのルートから実行します**。ルートは `frontend/`、`backend/`、`scripts/` とルートの `package.json` があるディレクトリです。リポジトリ全体を移動しても、特定のドライブや親ディレクトリに依存しません。コマンド例は PowerShell 用です。
 
 ## 目录与角色 / ディレクトリと役割
 
@@ -77,7 +77,17 @@ npm --version
 
 `backend/package.json` 声明 Node.js 范围为 `>=18.0.0 <=22.x.x`。选择满足前后端依赖要求的版本，例如此范围内的 Node.js 22.x；不要仅因机器安装了更新版本就假定兼容。原生依赖 `better-sqlite3` 也需要与所用 Node.js 版本匹配。
 
-已有依赖可正常使用时可进入启动步骤。首次安装、换机或切换 Node.js 后，在仓库根分别安装前后端依赖；每一步成功后再执行下一步：
+已有依赖可正常使用时可进入启动步骤。安装时按各子项目采用的锁文件选择管理器，**不要用 npm 和 pnpm 轮流重装同一个 `node_modules`**。当前后端使用 pnpm 10，已有 `backend/pnpm-lock.yaml`；保留这个锁文件，从仓库根安装：
+
+```powershell
+pnpm --version
+pnpm --dir ./backend install --frozen-lockfile
+if ($LASTEXITCODE -ne 0) { throw 'pnpm 后端依赖安装失败。' }
+```
+
+`backend/package.json` 已通过 `pnpm.onlyBuiltDependencies` 仅允许 `@swc/core`、`better-sqlite3`、`esbuild` 这三个必要依赖运行构建脚本。pnpm 10 跳过这些脚本可能导致原生模块缺失；修复与内存数据库检查见第 9 节。不要为此放行所有依赖，也不要删除数据库。
+
+以下保留 npm 锁文件方案：只有该子项目明确采用匹配的 `package-lock.json` 和 npm 安装环境时，才执行对应的 `npm ci`；**当前 pnpm 后端不再执行下面的后端 npm 安装**。前端继续采用其现有 npm 锁文件；每一步成功后再执行下一步：
 
 ```powershell
 npm --prefix ./backend ci
@@ -230,6 +240,7 @@ ZIP 解压后有一层版本目录。部署时让站点根对应其中 `index.ht
 
 | 现象 | 检查方向 |
 | --- | --- |
+| 缺少 SQLite 原生 binding、后端启动中断 | 检查 Node.js 与 pnpm 构建许可，按本节重建并验证；保留数据库 |
 | 找不到 `next-ssg-asset-downloader/dist` | 本地插件、`dist` 与前端清单；现有锁文件不能单独恢复手工插件 |
 | CMS 请求失败、列表为空或有占位内容 | 1337 服务、发布状态、公开读取权限、API 地址和分页；部分组件会返回默认内容 |
 | 新详情 404 | `generateStaticParams`、硬编码 slug、公告分页和 `frontend/out/` 的详情文件 |
@@ -237,6 +248,17 @@ ZIP 解压后有一层版本目录。部署时让站点根对应其中 `index.ht
 | CMS 更新后站点未变化 | 重新同步、构建并发布；静态文件不执行服务器端定时再验证 |
 | 预览还是旧版 | 确认本次构建成功、预览指向 `frontend/out/`，并刷新浏览器 |
 | 搜索无结果或报错 | 浏览器端 `frontend/app/search/SearchClient.tsx` 请求同源 `/api/*`，开发配置和静态预览均无对应代理 |
+
+如果启动时出现 `Could not locate the bindings file` 或缺少 `better_sqlite3.node` / `better-sqlite3.node`，先核对 Node.js 版本与 pnpm 构建许可，再从仓库根重建这三个依赖：
+
+```powershell
+pnpm --dir ./backend rebuild better-sqlite3 '@swc/core' esbuild
+if ($LASTEXITCODE -ne 0) { throw '后端原生依赖重建失败。' }
+node -e "const Database = require('./backend/node_modules/better-sqlite3'); const db = new Database(':memory:'); const row = db.prepare('SELECT 1 AS ok').get(); if (row.ok !== 1) throw new Error('SQLite check failed'); console.log(row); db.close();"
+if ($LASTEXITCODE -ne 0) { throw 'better-sqlite3 原生模块检查失败。' }
+```
+
+此检查只创建内存数据库，不打开或改动 `backend/.tmp/data.db`；无需清空数据库。打印 `{ ok: 1 }` 仅表示 `better-sqlite3` 已能加载并执行查询，不表示 Strapi 已启动成功。随后仍需按第 3 节实际启动并确认接口。根目录的 `npm run dev:backend` 只是运行脚本，不会用 npm 重装 pnpm 依赖。
 
 搜索还按 `item.attributes` 读取部分字段，并把项目、研究员结果链接到 `/projects/`、`/researchers/`，与实际页面结构有差异。需要搜索时，应另行核实 Strapi 5 数据结构、修正链接，并提供同源 API 代理或静态搜索方案。仅迁移目录、改成相对文件路径或上传静态包不会补齐这些能力。
 
@@ -273,7 +295,17 @@ npm --version
 
 `backend/package.json` の Node.js 制約は `>=18.0.0 <=22.x.x` です。例えばこの範囲内の Node.js 22.x など、両側の依存関係を満たすバージョンを選びます。新しいバージョンだから互換性があるとは限りません。ネイティブ依存の `better-sqlite3` も Node.js のバージョンと一致させる必要があります。
 
-既存の依存関係で正常に利用できれば起動へ進みます。初回、別の端末、Node.js の切り替え後には、ルートでそれぞれの依存関係をインストールします。各コマンドが成功してから次へ進んでください。
+既存の依存関係が正常なら起動へ進みます。インストール時は各サブプロジェクトのロックファイルに対応する管理ツールを選び、**同じ `node_modules` を npm と pnpm で交互に再インストールしないでください**。現在のバックエンドは pnpm 10 を使用し、`backend/pnpm-lock.yaml` があります。このファイルを保持し、ルートから実行します。
+
+```powershell
+pnpm --version
+pnpm --dir ./backend install --frozen-lockfile
+if ($LASTEXITCODE -ne 0) { throw 'pnpm によるバックエンドの依存関係のインストールに失敗しました。' }
+```
+
+`backend/package.json` の `pnpm.onlyBuiltDependencies` には、必要な `@swc/core`、`better-sqlite3`、`esbuild` の 3 パッケージだけが登録済みです。pnpm 10 でこれらのビルドスクリプトが省略されると、ネイティブモジュールが欠ける場合があります。修復とメモリ内データベースでの確認は第 9 節を参照してください。全依存のスクリプトを一律に許可したり、データベースを削除したりしないでください。
+
+以下は npm のロックファイルを使う場合の代替手順です。そのサブプロジェクトで対応する `package-lock.json` と npm のインストール環境を採用している場合のみ、該当する `npm ci` を実行します。**現在 pnpm を使うバックエンドには、下記の npm インストールを重ねて実行しません**。フロントエンドは既存の npm ロックファイルを使用します。各コマンドが成功してから次へ進んでください。
 
 ```powershell
 npm --prefix ./backend ci
@@ -426,6 +458,7 @@ ZIP には版のディレクトリが 1 階層含まれます。その中の `in
 
 | 症状 | 確認箇所 |
 | --- | --- |
+| SQLite のネイティブ binding がなく起動できない | Node.js と pnpm のビルド許可を確認し、本節の再ビルドと検証を実施。DB は保持する |
 | `next-ssg-asset-downloader/dist` がない | プラグイン、`dist`、フロントエンドの依存一覧。現ロックファイルだけでは手動プラグインを復元できない |
 | CMS 通信失敗、空の一覧、仮の内容 | ポート 1337、公開状態、読み取り権限、API アドレス、ページネーション。一部は代替内容を返す |
 | 新しい詳細が 404 | `generateStaticParams`、固定 slug、お知らせのページネーション、`frontend/out/` の詳細ファイル |
@@ -433,6 +466,17 @@ ZIP には版のディレクトリが 1 階層含まれます。その中の `in
 | CMS 更新が反映されない | 同期、再ビルド、再公開。静的ファイルはサーバー側の定期再検証を実行しない |
 | 古い版が表示される | 今回のビルドの成功、配信対象 `frontend/out/`、ブラウザーの再読み込み |
 | 検索が動かない | `frontend/app/search/SearchClient.tsx` が同一オリジンの `/api/*` を呼ぶが、開発・静的プレビューともにプロキシがない |
+
+起動時に `Could not locate the bindings file`、`better_sqlite3.node` / `better-sqlite3.node` の不足が出る場合、Node.js のバージョンと pnpm のビルド許可を確認し、ルートから 3 パッケージを再ビルドします。
+
+```powershell
+pnpm --dir ./backend rebuild better-sqlite3 '@swc/core' esbuild
+if ($LASTEXITCODE -ne 0) { throw 'バックエンドのネイティブ依存の再ビルドに失敗しました。' }
+node -e "const Database = require('./backend/node_modules/better-sqlite3'); const db = new Database(':memory:'); const row = db.prepare('SELECT 1 AS ok').get(); if (row.ok !== 1) throw new Error('SQLite check failed'); console.log(row); db.close();"
+if ($LASTEXITCODE -ne 0) { throw 'better-sqlite3 のネイティブモジュールの確認に失敗しました。' }
+```
+
+確認にはメモリ内データベースだけを使い、`backend/.tmp/data.db` は開かず、変更もしません。データベースの削除は不要です。`{ ok: 1 }` は `better-sqlite3` の読み込みとクエリが成功したことだけを示し、Strapi の起動成功を意味しません。続いて第 3 節の起動と API 確認が必要です。ルートの `npm run dev:backend` はスクリプトの実行のみで、pnpm の依存関係を npm で再インストールする操作ではありません。
 
 検索は一部を `item.attributes` から読み、プロジェクトと研究員のリンクを実際の構成と異なる `/projects/`、`/researchers/` に生成します。提供するには Strapi 5 の形式を確認し、リンクを修正し、同一オリジンの API プロキシまたは静的検索を実装する必要があります。ディレクトリ移動、ファイルパスの相対化、静的ファイルの公開だけでは解決しません。
 
@@ -453,5 +497,5 @@ ZIP には版のディレクトリが 1 階層含まれます。その中の `in
 - `frontend/app/components/Carousel.tsx`、`frontend/app/components/Projects.tsx`、`frontend/app/components/PublicationsPreview.tsx`：构建时 CMS 请求 / ビルド時の CMS 参照
 - `frontend/app/news/announcements/[slug]/page.tsx`、`frontend/app/news/events/[slug]/page.tsx`、`frontend/app/symposium/[slug]/page.tsx`、`frontend/app/studies/projects/[slug]/page.tsx`：静态详情路由 / 静的詳細ルート
 - `frontend/app/search/SearchClient.tsx`：浏览器端搜索 / ブラウザー側の検索
-- `backend/package.json`、`backend/config/server.ts`、`backend/config/database.ts`、`backend/config/api.ts`：后端命令、端口、数据库、分页 / バックエンドのコマンド、ポート、DB、ページネーション
+- `backend/pnpm-lock.yaml`、`backend/package.json`、`backend/config/server.ts`、`backend/config/database.ts`、`backend/config/api.ts`：后端命令、端口、数据库、分页 / バックエンドのコマンド、ポート、DB、ページネーション
 - `.gitignore`、`frontend/.gitignore`、`backend/.gitignore`：源码与本地数据的提交范围 / ソースとローカルデータのコミット範囲
