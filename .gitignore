@@ -27,14 +27,14 @@ next-env.d.ts
 *.db-*
 *.sqlite
 *.sqlite3
+!/backend/database/content-snapshot.sqlite
 *.log
 *.pid
 *.pem
 *.key
 
-# Backend uploads remain available locally; do not publish runtime data
-/backend/public/uploads/*
-!/backend/public/uploads/.gitkeep
+# Backend public uploads and the sanitized content snapshot are versioned.
+# The live database and all local credentials stay ignored.
 
 # Editor and machine-specific state
 .vercel/

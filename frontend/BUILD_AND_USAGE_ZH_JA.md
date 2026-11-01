@@ -19,6 +19,10 @@
 | `frontend/.next/` | Next.js 构建中间目录，不提交 / Next.js のビルド中間生成物。コミット対象外 |
 | `frontend/out/` | 前端静态导出目录，不提交 / 静的サイトの出力先。コミット対象外 |
 | `backend/` | 本项目使用的 Strapi 后端 / 使用する Strapi バックエンド |
+| `backend/public/uploads/` | 全部上传图片，纳入 Git / アップロード画像全体。Git 管理対象 |
+| `backend/database/content-snapshot.sqlite` | 去除账号与凭据的业务快照，纳入 Git / アカウント・認証情報を除去したコンテンツ DB。Git 管理対象 |
+| `backend/.tmp/data.db`、`backend/.env` | 本机运行数据库和独立密钥，不提交 / ローカル実行 DB と独自の秘密情報。コミット対象外 |
+| `scripts/content-database.cjs` | 导出、检查、恢复业务快照 / コンテンツ DB のエクスポート・検査・復元 |
 | `scripts/preview-static.cjs` | 本仓库静态预览脚本 / リポジトリ内の静的プレビュー用スクリプト |
 | `scripts/sync-uploads.cjs` | 从后端复制上传资源到前端 / バックエンドからフロントエンドへのアセットコピー |
 | `releases/` | 可选的版本归档与 ZIP，不提交 / 任意の版別アーカイブと ZIP。コミット対象外 |
@@ -26,9 +30,9 @@
 | `.local/legacy-backend/` | 原前端内嵌的旧后端及数据，不提交、不用于启动 / 旧バックエンドとデータの保存。コミット・起動対象外 |
 | `.local/frontend-next-before-move/` | 迁移前的旧构建缓存，不提交、不复用 / 移動前のビルドキャッシュ。コミット・再利用対象外 |
 
-本文只启动 `backend/`，不混用历史后端的数据库和上传资源。迁移前的缓存可能含旧绝对路径，开发和构建应在新目录重新生成 `frontend/.next/`。数据库、环境文件、依赖和 `.local/` 只在本地保留；Git 源码仓库不能替代这些运行数据的备份。
+本文只启动 `backend/`，不混用历史后端的数据库和上传资源。迁移前的缓存可能含旧绝对路径，开发和构建应在新目录重新生成 `frontend/.next/`。运行数据库 `backend/.tmp/data.db`、环境文件、依赖和 `.local/` 只在本地保留。可恢复的业务快照 `backend/database/content-snapshot.sqlite` 与 `backend/public/uploads/` 全部图片纳入 Git；快照不会实时同步本机数据库，仍需保留自己的运行数据备份。
 
-本書では `backend/` のみを起動し、過去のコピーのデータベースやアセットを混在させません。移動前のキャッシュには古い絶対パスが含まれる場合があるため、新しい場所で `frontend/.next/` を再生成します。データベース、環境ファイル、依存関係、`.local/` はローカルに保持します。ソースの Git 管理は、これらの実行データのバックアップの代わりにはなりません。
+本書では `backend/` のみを起動し、過去のコピーのデータベースやアセットを混在させません。移動前のキャッシュには古い絶対パスが含まれる場合があるため、新しい場所で `frontend/.next/` を再生成します。実行用 `backend/.tmp/data.db`、環境ファイル、依存関係、`.local/` はローカルに保持します。復元用の `backend/database/content-snapshot.sqlite` と `backend/public/uploads/` の全画像は Git 管理対象です。スナップショットは実行 DB とリアルタイム同期しないため、実行データは別途バックアップしてください。
 
 ---
 
@@ -62,6 +66,9 @@ Next.js 页面预渲染 ─── frontend/public/ 中的资源
 | `npm run build:frontend` | 执行前端 `next build`，按当前配置导出静态站 |
 | `npm run sync:uploads` | 将后端上传资源复制到前端 |
 | `npm run preview` | 预览 `frontend/out/`，默认端口 3001 |
+| `npm run data:export` | 从运行数据库导出清理凭据后的业务快照 |
+| `npm run data:check` | 检查可提交的业务快照 |
+| `npm run data:restore` | 仅在运行数据库不存在时，从快照恢复 |
 | `npm --prefix ./frontend run lint` | 单独运行前端现有 `next lint` 检查命令 |
 
 前端仍有 `start: next start`，但当前 `output: 'export'` 方案使用静态预览。实际配置为 `frontend/next.config.js`。当前安装的 Next.js 按 `next.config.js`、`next.config.mjs`、`next.config.ts` 的顺序查找，旁边的空 `next.config.ts` 不会覆盖或合并 JS 配置。
@@ -120,15 +127,26 @@ try {
 
 ### 3. 启动后端并确认内容
 
-在独立终端的仓库根运行：
+当前后端端口为 `1337`，使用 SQLite，运行数据库为 `backend/.tmp/data.db`。仓库提供去除账号和凭据的 `backend/database/content-snapshot.sqlite`，包含业务内容与媒体元数据；`backend/public/uploads/` 全部图片纳入 Git，当前共 259 个图片文件。两者一起可在另一台机器恢复内容，不需要额外建立 MySQL。
+
+**现有本机已经有数据库时，保留原文件，不执行恢复。** `data:restore` 仅在目标数据库不存在时复制快照，绝不覆盖已有数据库；不要为通过此检查而删除自己的数据库。
+
+新机器按顺序准备：先根据 `backend/.env.example` 建立本机 `backend/.env`，填入自己生成的独立密钥，不复制原 `.env` 到 Git；模板未写数据库字段时，当前配置仍默认 SQLite 和 `.tmp/data.db`。然后按第 2 节安装后端依赖、完成必要的原生模块构建，再从仓库根恢复：
+
+```powershell
+npm run data:check
+if ($LASTEXITCODE -ne 0) { throw '业务快照检查失败。' }
+npm run data:restore
+if ($LASTEXITCODE -ne 0) { throw '业务快照恢复失败；已有数据库时应跳过恢复。' }
+```
+
+恢复后，在独立终端的仓库根启动：
 
 ```powershell
 npm run dev:backend
 ```
 
-当前后端端口为 `1337`，使用 SQLite，数据库为 `backend/.tmp/data.db`。保留 `backend/.env`、`backend/.tmp/data.db` 和 `backend/public/uploads/`，不需要为现有配置另外建立 MySQL 数据库。新克隆的源码不包含这些本地数据，需要从自己的备份恢复环境与内容后再使用。
-
-- 后台管理：[http://127.0.0.1:1337/admin](http://127.0.0.1:1337/admin)。使用已有管理员账号。
+- 后台管理：[http://127.0.0.1:1337/admin](http://127.0.0.1:1337/admin)。现有本机继续使用自己的账号；新机器恢复快照后，首次访问这里创建自己的管理员。快照不包含旧管理员、普通用户及 API/传输凭据，不会自动创建共享管理员。
 - 内容在后台编辑并发布；允许前端实际使用的公开读取操作。
 - 前端读取 `announcements`、`events`、`projects`、`publications`、`researchers` 等集合。
 
@@ -189,6 +207,17 @@ if ($LASTEXITCODE -ne 0) { throw '前端构建失败，请检查上方日志。'
 `npm run build:backend` 另用于 Strapi 管理后台构建，不会替代前端打包，也不会打包数据库和上传资源。
 
 ### 6. 更新内容与详情路由
+
+数据库快照和图片通过 Git 共享，但**不是自动实时同步**。更新 CMS 内容后，从仓库根重新导出并检查，再提交新的快照和本次变更的上传图片：
+
+```powershell
+npm run data:export
+if ($LASTEXITCODE -ne 0) { throw '业务快照导出失败。' }
+npm run data:check
+if ($LASTEXITCODE -ne 0) { throw '业务快照检查失败。' }
+```
+
+导出脚本只读打开运行数据库，通过 SQLite 在线备份生成 `.local/` 临时副本，在副本中清除管理员、普通用户、API/传输令牌、会话、Webhook、历史记录和作者引用，再执行 `VACUUM` 发布到 `backend/database/content-snapshot.sqlite`；原运行数据库不被清理。快照保留业务内容、媒体元数据和角色定义；匿名权限仅保留公开内容读取，需要写入权限时由恢复后的管理员另行配置。原运行数据库的权限不改动。快照和图片更新后需一并 commit、推送；未重新导出的数据库修改不会自动进入 Git。
 
 静态站的 CMS 内容是构建时快照。修改内容或图片后，需要重新同步资源、构建并发布。源码中的 `revalidate: 3600` 不会让已导出的静态文件每小时自动更新。
 
@@ -280,6 +309,9 @@ if ($LASTEXITCODE -ne 0) { throw 'better-sqlite3 原生模块检查失败。' }
 | `npm run build:frontend` | フロントエンドの `next build` と静的出力 |
 | `npm run sync:uploads` | バックエンドのアセットをフロントエンドへコピー |
 | `npm run preview` | `frontend/out/` のプレビュー。既定のポートは 3001 |
+| `npm run data:export` | 実行 DB から認証情報を除去したコンテンツ DB を出力 |
+| `npm run data:check` | Git に保存するコンテンツ DB を検査 |
+| `npm run data:restore` | 実行 DB がない場合だけスナップショットから復元 |
 | `npm --prefix ./frontend run lint` | フロントエンドの既存の `next lint` を個別実行 |
 
 フロントエンドには `start: next start` もありますが、現在の `output: 'export'` 構成では静的プレビューを使用します。読み込まれる設定は `frontend/next.config.js` です。現在の Next.js は `next.config.js`、`next.config.mjs`、`next.config.ts` の順で探すため、空の TS ファイルが JS の設定を上書きしたり、両者がマージされたりすることはありません。
@@ -338,15 +370,26 @@ try {
 
 ### 3. バックエンドの起動とデータ確認
 
-専用ターミナルのルートで実行します。
+現在のポートは `1337`、実行 DB は SQLite の `backend/.tmp/data.db` です。リポジトリには、アカウントと認証情報を除去し、業務コンテンツとメディア情報を含む `backend/database/content-snapshot.sqlite` があります。`backend/public/uploads/` の全画像も Git 管理対象で、現在は 259 ファイルです。この DB と画像を使って別の端末に内容を復元でき、MySQL の新設は不要です。
+
+**既に実行 DB がある端末では元のファイルを保持し、復元を実行しません。** `data:restore` は DB が存在しない場合だけコピーし、既存 DB は上書きしません。この確認を回避するために自分の DB を削除しないでください。
+
+新しい端末では、まず `backend/.env.example` を基に `backend/.env` を用意し、独自に生成した秘密情報を設定します。元の `.env` は Git に含めません。テンプレートに DB の項目がなくても、現設定は既定で SQLite と `.tmp/data.db` を使用します。次に第 2 節の依存関係のインストールと必要なネイティブモジュールのビルドを済ませ、ルートから復元します。
+
+```powershell
+npm run data:check
+if ($LASTEXITCODE -ne 0) { throw 'コンテンツ DB の検査に失敗しました。' }
+npm run data:restore
+if ($LASTEXITCODE -ne 0) { throw '復元に失敗しました。既存 DB がある場合は復元を省略してください。' }
+```
+
+復元後、専用ターミナルのルートで起動します。
 
 ```powershell
 npm run dev:backend
 ```
 
-現在のポートは `1337`、データベースは SQLite の `backend/.tmp/data.db` です。`backend/.env`、`backend/.tmp/data.db`、`backend/public/uploads/` を一組として保持します。現設定のために MySQL を新設する必要はありません。新しくクローンしたソースにはローカルデータは含まれないため、使用前に自分のバックアップから環境と内容を復元してください。
-
-- 管理画面：[http://127.0.0.1:1337/admin](http://127.0.0.1:1337/admin)。既存の管理者アカウントを使用します。
+- 管理画面：[http://127.0.0.1:1337/admin](http://127.0.0.1:1337/admin)。既存の端末では自分のアカウントを継続使用します。復元した新しい端末では、初回アクセス時に自分の管理者を登録します。旧管理者、一般ユーザー、API・転送用の認証情報は含まれず、共用管理者も自動作成しません。
 - 管理画面で内容を編集・公開し、フロントエンドが必要とする公開読み取り操作を許可します。
 - 主な API は `announcements`、`events`、`projects`、`publications`、`researchers` です。
 
@@ -407,6 +450,17 @@ if ($LASTEXITCODE -ne 0) { throw 'フロントエンドのビルドに失敗し�
 `npm run build:backend` は Strapi 管理画面用です。フロントエンドのビルドを代替せず、データベースやアップロードファイルも梱包しません。
 
 ### 6. 内容更新と詳細ルート
+
+DB のスナップショットと画像は Git で共有しますが、**リアルタイムの自動同期ではありません**。CMS 更新後はルートで再出力・検査し、新しい DB と変更したアップロード画像をコミットします。
+
+```powershell
+npm run data:export
+if ($LASTEXITCODE -ne 0) { throw 'コンテンツ DB の出力に失敗しました。' }
+npm run data:check
+if ($LASTEXITCODE -ne 0) { throw 'コンテンツ DB の検査に失敗しました。' }
+```
+
+スクリプトは実行 DB を読み取り専用で開き、SQLite のオンラインバックアップで `.local/` に一時コピーを作ります。そのコピーから管理者、一般ユーザー、API・転送トークン、セッション、Webhook、履歴、作成者・更新者の参照を削除し、`VACUUM` 後に `backend/database/content-snapshot.sqlite` へ保存します。元の実行 DB は消去しません。業務コンテンツ、メディア情報、ロール定義は保持し、匿名アクセスは公開コンテンツの読み取りだけに制限します。書き込み権限が必要な場合は復元後の管理者が別途設定します。元の実行 DB の権限は変更しません。更新した DB と画像はコミット・プッシュが必要で、再出力していない DB の変更は Git に入りません。
 
 静的サイトの CMS 内容はビルド時点のものです。内容や画像の更新後は同期、再ビルド、再公開が必要です。`revalidate: 3600` は、出力済みの静的ファイルを毎時更新する機能にはなりません。
 
@@ -487,7 +541,7 @@ if ($LASTEXITCODE -ne 0) { throw 'better-sqlite3 のネイティブモジュー�
 以下均为仓库根目录相对路径。  
 以下はすべてリポジトリのルートからの相対パスです。
 
-- `package.json`、`scripts/preview-static.cjs`、`scripts/sync-uploads.cjs`：统一命令、预览、资源复制 / 共通コマンド、プレビュー、アセットコピー
+- `package.json`、`scripts/preview-static.cjs`、`scripts/sync-uploads.cjs`、`scripts/content-database.cjs`：统一命令、预览、资源复制、业务快照 / 共通コマンド、プレビュー、アセットコピー、コンテンツ DB
 - `frontend/package.json`、`frontend/package-lock.json`：前端版本与依赖 / フロントエンドのバージョンと依存関係
 - `frontend/next.config.js`、`frontend/next.config.ts`：导出、代理、插件配置 / 出力、プロキシ、プラグイン設定
 - `frontend/next-ssg-asset-downloader/src/index.ts`、`frontend/node_modules/next-ssg-asset-downloader/dist/index.js`：插件行为 / プラグインの実装
@@ -497,5 +551,6 @@ if ($LASTEXITCODE -ne 0) { throw 'better-sqlite3 のネイティブモジュー�
 - `frontend/app/components/Carousel.tsx`、`frontend/app/components/Projects.tsx`、`frontend/app/components/PublicationsPreview.tsx`：构建时 CMS 请求 / ビルド時の CMS 参照
 - `frontend/app/news/announcements/[slug]/page.tsx`、`frontend/app/news/events/[slug]/page.tsx`、`frontend/app/symposium/[slug]/page.tsx`、`frontend/app/studies/projects/[slug]/page.tsx`：静态详情路由 / 静的詳細ルート
 - `frontend/app/search/SearchClient.tsx`：浏览器端搜索 / ブラウザー側の検索
+- `backend/database/content-snapshot.sqlite`、`backend/public/uploads/`：可恢复的业务内容与图片 / 復元用のコンテンツと画像
 - `backend/pnpm-lock.yaml`、`backend/package.json`、`backend/config/server.ts`、`backend/config/database.ts`、`backend/config/api.ts`：后端命令、端口、数据库、分页 / バックエンドのコマンド、ポート、DB、ページネーション
 - `.gitignore`、`frontend/.gitignore`、`backend/.gitignore`：源码与本地数据的提交范围 / ソースとローカルデータのコミット範囲

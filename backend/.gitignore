@@ -80,8 +80,6 @@ $RECYCLE.BIN/
 ssl
 .idea
 nbproject
-public/uploads/*
-!public/uploads/.gitkeep
 .tsbuildinfo
 .eslintcache
 
@@ -129,3 +127,6 @@ dist
 build
 .strapi-updater.json
 .strapi-cloud.json
+
+# Share a sanitized content snapshot, while keeping the live database local.
+!database/content-snapshot.sqlite

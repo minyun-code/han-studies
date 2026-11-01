@@ -9,7 +9,10 @@
     "build:frontend": "npm --prefix frontend run build",
     "build:backend": "npm --prefix backend run build",
     "sync:uploads": "node scripts/sync-uploads.cjs",
-    "preview": "node scripts/preview-static.cjs"
+    "preview": "node scripts/preview-static.cjs",
+    "data:export": "node scripts/content-database.cjs export",
+    "data:check": "node scripts/content-database.cjs check",
+    "data:restore": "node scripts/content-database.cjs restore"
   },
   "engines": {
     "node": ">=18.0.0 <=22.x.x"
