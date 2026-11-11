@@ -22,11 +22,9 @@ export const metadata: Metadata = {
   title: "早稲田大学漢学研究所",
   description: "漢学研究",
   icons: {
-    icon: ".../public/images/favicon.png", 
+    icon: "/images/favicon.png",
   },
 };
-
-export { notoSerifJP };
 
 export default function RootLayout({
   children,

@@ -6,9 +6,14 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { DateCalendar } from "@mui/x-date-pickers/DateCalendar";
 import { Box, Paper, Typography, Chip, Divider, IconButton } from "@mui/material";
-import { format, isSameDay } from "date-fns";
+import { format } from "date-fns";
 import { useState, useEffect, useRef } from "react";
 import { Event } from './SidebarCalendarWrapper';
+import {
+  formatEventDate as formatJapanEventDate,
+  parseEventDate,
+  toTokyoDateKey,
+} from "../lib/events";
 
 // 实际的日历组件实现
 function CalendarImplementation({ events = [] }: { events: Event[] }) {
@@ -23,8 +28,8 @@ function CalendarImplementation({ events = [] }: { events: Event[] }) {
     // 处理从服务器传来的可能是字符串的日期
     const processed = events.map(event => ({
       ...event,
-      startDate: event.startDate instanceof Date ? event.startDate : new Date(event.startDate),
-      endDate: event.endDate ? (event.endDate instanceof Date ? event.endDate : new Date(event.endDate)) : undefined
+      startDate: parseEventDate(event.startDate),
+      endDate: event.endDate ? parseEventDate(event.endDate) : undefined
     }));
 
     setProcessedEvents(processed);
@@ -49,8 +54,9 @@ function CalendarImplementation({ events = [] }: { events: Event[] }) {
     if (!date || processedEvents.length === 0) return null;
 
     return processedEvents.find(e => {
-      const eventDate = e.startDate instanceof Date ? e.startDate : new Date(e.startDate);
-      return isSameDay(eventDate, date);
+      // Calendar cells represent their displayed civil date in the browser's
+      // time zone; event instants must always be matched to their Japanese date.
+      return toTokyoDateKey(e.startDate) === format(date, "yyyy-MM-dd");
     }) ?? null;
   };
 
@@ -71,8 +77,7 @@ function CalendarImplementation({ events = [] }: { events: Event[] }) {
 
   // 格式化事件日期的工具函数
   const formatEventDate = (dateValue: string | Date) => {
-    const date = dateValue instanceof Date ? dateValue : new Date(dateValue);
-    return format(date, "yyyy/MM/dd");
+    return formatJapanEventDate(dateValue, false);
   };
 
   // 截断过长的内容并添加省略号，同时过滤掉图片标记
@@ -133,9 +138,12 @@ function CalendarImplementation({ events = [] }: { events: Event[] }) {
             sx={{
               position: "absolute",
               top: 10,
-              left: "100%",
-              ml: 2,
-              width: 280,
+              left: { xs: 0, md: "100%" },
+              ml: { xs: 0, md: 2 },
+              width: { xs: "100%", md: 280 },
+              maxWidth: { xs: "100%", md: "none" },
+              boxSizing: "border-box",
+              overflowWrap: "anywhere",
               p: 2,
               bgcolor: "white",
               borderRadius: 2,
@@ -152,6 +160,7 @@ function CalendarImplementation({ events = [] }: { events: Event[] }) {
                 top: 8,
                 width: 28,
                 height: 28,
+                zIndex: 1,
                 p: 0.5,
                 color: 'grey.500',
                 '&:hover': {
@@ -206,6 +215,7 @@ function CalendarImplementation({ events = [] }: { events: Event[] }) {
             <Typography variant="body2" sx={{ fontSize: "0.75rem", mt: 1 }}>
               日付: {formatEventDate(selectedEvent.startDate)}
               {selectedEvent.endDate && ` ~ ${formatEventDate(selectedEvent.endDate)}`}
+              {" (日本時間)"}
             </Typography>
 
             <Typography variant="body2" sx={{ fontSize: "0.75rem" }}>

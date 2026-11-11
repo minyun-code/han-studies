@@ -1,63 +1,25 @@
-import dayjs from "dayjs";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import SidebarCalendar from "../../../components/SidebarCalendarWrapper";
+import { fetchAllEvents, formatEventDate } from "../../../lib/events";
 
-interface Event {
-  id: number;
-  title: string;
-  slug: string;
-  content: string;
-  startDate: string;
-  endDate?: string;
-  location: string;
-  image?: { url: string }[];
-}
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:1337";
-
-// 动态路径生成（你可以根据后端 slug 动态生成）
 export async function generateStaticParams() {
-  const slugs = [
-    "event",
-    "event-1",
-    "event-2",
-    "event-3",
-    "event-4",
-    "event-5",
-    "event-6",
-    "event-7",
-    "event-8",
-    "event-9",
-    "event-10",
-  ]; // 可动态生成
-  return slugs.map((slug) => ({ slug }));
-}
-
-// 获取事件数据
-async function getEvent(slug: string): Promise<Event | null> {
-  const res = await fetch(`${API_BASE_URL}/api/events?populate=*`, {
-    next: { revalidate: 3600 }, // 每小时重新验证
-  });
-  const { data } = await res.json();
-  return data.find((ev: Event) => ev.slug === slug) || null;
+  const events = await fetchAllEvents();
+  return events.filter((event) => event.slug).map(({ slug }) => ({ slug }));
 }
 
 export default async function EventDetailPage({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
-  const { slug } = params;
-  const event = await getEvent(slug);
+  const { slug } = await params;
+  const event = (await fetchAllEvents()).find((event) => event.slug === slug);
   if (!event) {
     return <StatusDisplay message="イベントが見つかりません。" isError />;
   }
-
-  const formatDate = (dateStr?: string) =>
-    dateStr ? dayjs(dateStr).format("YYYY/MM/DD HH:mm") : "未定";
 
   const shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(
     event.title,
@@ -78,7 +40,7 @@ export default async function EventDetailPage({
           </aside>
 
           {/* Main Content */}
-          <main className="flex-1 bg-white/80 backdrop-blur-md rounded-xl shadow-lg overflow-hidden order-1 md:order-2">
+          <main className="min-w-0 flex-1 bg-white/80 backdrop-blur-md rounded-xl shadow-lg overflow-hidden order-1 md:order-2">
             <div className="p-4 sm:p-8">
               {/* 返回按钮 */}
               <Link
@@ -89,25 +51,25 @@ export default async function EventDetailPage({
                 <span className="text-sm font-medium">戻る</span>
               </Link>
 
-              <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+              <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 break-words">
                 {event.title}
               </h1>
 
-              <div className="flex flex-col sm:flex-row gap-4 text-sm text-gray-500 mb-6">
-                <div className="flex items-center gap-2">
-                  <img src="/images/riqi.svg" alt="date" className="w-4 h-4" />
+              <div className="flex flex-col sm:flex-row sm:flex-wrap gap-4 text-sm text-gray-500 mb-6">
+                <div className="flex min-w-0 items-center gap-2">
+                  <img src="/images/riqi.svg" alt="date" className="w-4 h-4 shrink-0" />
                   <span>
-                    {formatDate(event.startDate)}{" "}
-                    {event.endDate && ` - ${formatDate(event.endDate)}`}
+                    {formatEventDate(event.startDate)}{" "}
+                    {event.endDate && ` - ${formatEventDate(event.endDate)}`}
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex min-w-0 items-center gap-2">
                   <img
                     src="/images/didian.svg"
                     alt="location"
-                    className="w-4 h-4"
+                    className="w-4 h-4 shrink-0"
                   />
-                  <span>{event.location}</span>
+                  <span className="break-words">{event.location}</span>
                 </div>
               </div>
 
@@ -128,11 +90,11 @@ export default async function EventDetailPage({
                         key={`base-${i}`}
                         className="absolute w-3 h-3 rounded-full bg-[radial-gradient(circle_at_center,#ffffff_30%,transparent_70%)] mix-blend-screen opacity-80 animate-[enhancedFloat_4s_cubic-bezier(0.4,0,0.6,1)_infinite]"
                         style={{
-                          top: `${Math.random() * 120 - 10}%`,
-                          left: `${Math.random() * 120 - 10}%`,
-                          animationDelay: `${Math.random() * 3}s`,
-                          filter: `blur(${Math.random() * 4 + 2}px)`,
-                          scale: `${0.6 + Math.random() * 0.8}`,
+                          top: `${((i * 37 + 11) % 120) - 10}%`,
+                          left: `${((i * 53 + 29) % 120) - 10}%`,
+                          animationDelay: `${(i % 6) * 0.5}s`,
+                          filter: `blur(${2 + (i % 5)}px)`,
+                          scale: `${0.6 + (i % 9) * 0.1}`,
                         }}
                       />
                     ))}
@@ -158,7 +120,7 @@ export default async function EventDetailPage({
 
 // Markdown 内容渲染
 const MarkdownContent = ({ content }: { content: string }) => (
-  <div className="prose max-w-none text-gray-700">
+  <div className="prose max-w-none break-words text-gray-700">
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
       components={{
@@ -223,19 +185,21 @@ const MarkdownContent = ({ content }: { content: string }) => (
         em: ({ node, ...props }) => <em className="italic" {...props} />,
         img: ({ node, ...props }) => {
           // 去除本地 API 前缀
-          let imgSrc =
-            props.src?.replace(
+          const imgSrc = typeof props.src === "string"
+            ? props.src.replace(
               /^https?:\/\/(localhost|127\.0\.0\.1):1337/,
               "",
-            ) || "";
+            ) : "";
           return (
-            <div className="my-6 flex flex-col items-center">
-              <img
-                {...props}
-                src={imgSrc}
-                className="w-4/5 mx-auto my-2 rounded-lg shadow-md max-h-[380px] object-contain"
-              />
-            </div>
+            <span className="my-6 flex flex-col items-center">
+              <a href={imgSrc} target="_blank" rel="noopener noreferrer" className="block w-full">
+                <img
+                  {...props}
+                  src={imgSrc}
+                  className="w-full h-auto max-w-full mx-auto my-2 rounded-lg shadow-md"
+                />
+              </a>
+            </span>
           );
         },
       }}

@@ -1,5 +1,10 @@
 import Link from "next/link";
-import { format, parseISO } from "date-fns";
+import {
+  compareEventDatesDesc,
+  fetchAllEvents,
+  formatEventDate as formatJapanEventDate,
+  parseEventDate,
+} from "../../lib/events";
 
 // 事件数据结构
 interface Event {
@@ -12,16 +17,10 @@ interface Event {
   imageUrl?: string;
 }
 
-const API_BASE_URL = "http://127.0.0.1:1337";
-
 // 获取事件数据
 async function getEvents(): Promise<Event[]> {
-  const res = await fetch(`${API_BASE_URL}/api/events?populate=*&filters[category][$eq]=seminar`, {
-    cache: "force-cache",
-  });
-  const data = await res.json();
-
-  return data.data.map((event: any) => {
+  const events = await fetchAllEvents("seminar");
+  return events.map((event) => {
     const imageFormats = event.image?.[0]?.formats;
     const imageUrl =
       imageFormats?.large?.url ||
@@ -34,8 +33,8 @@ async function getEvents(): Promise<Event[]> {
       id: event.id,
       title: event.title || "無題",
       slug: event.slug || "no-slug",
-      startDate: event.startDate ? parseISO(event.startDate) : new Date(),
-      endDate: event.endDate ? parseISO(event.endDate) : undefined,
+      startDate: parseEventDate(event.startDate),
+      endDate: event.endDate ? parseEventDate(event.endDate) : undefined,
       location: event.location || "不明",
       imageUrl: imageUrl ? `${imageUrl}` : undefined,
     };
@@ -44,13 +43,7 @@ async function getEvents(): Promise<Event[]> {
 
 // 日期格式化工具
 const formatEventDate = (start: Date, end?: Date) => {
-  const dateFormat = "yyyy/MM/dd";
-  const timeFormat = "HH:mm";
-
-  if (!end ) {
-    return `${format(start, `${dateFormat} ${timeFormat}`)} ~ ${format(start, `${dateFormat} ${timeFormat}`)}`;
-  }
-  return `${format(start, `${dateFormat} ${timeFormat}`)} ~ ${format(end, `${dateFormat} ${timeFormat}`)}`;
+  return `${formatJapanEventDate(start)}${end ? ` ~ ${formatJapanEventDate(end)}` : ""}`;
 };
 
 // 事件卡片组件
@@ -91,7 +84,7 @@ const EventCard = ({ event }: { event: Event }) => {
 };
 
 export default async function SeminarsPage() {
-  const events = await getEvents();
+  const events = (await getEvents()).sort(compareEventDatesDesc);
   const itemsPerPage = 9;
   const totalPages = Math.ceil(events.length / itemsPerPage);
   const paginatedEvents = events.slice(0, itemsPerPage); // 默认显示第一页
@@ -105,7 +98,7 @@ export default async function SeminarsPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {paginatedEvents.length > 0 ? (
-              paginatedEvents.reverse().map((event) => (
+              paginatedEvents.map((event) => (
                 <EventCard key={event.id} event={event} />
               ))
             ) : (

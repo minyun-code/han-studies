@@ -1,6 +1,11 @@
 import Link from "next/link";
-import { format, parseISO } from "date-fns";
 import SidebarCalendar from "../../components/SidebarCalendarWrapper";
+import {
+  compareEventDatesDesc,
+  fetchAllEvents,
+  formatEventDate as formatJapanEventDate,
+  parseEventDate,
+} from "../../lib/events";
 
 // 事件数据结构
 interface Event {
@@ -15,13 +20,7 @@ interface Event {
 
 // 日期格式化工具
 const formatEventDate = (start: Date, end?: Date) => {
-  const dateFormat = "yyyy/MM/dd";
-  const timeFormat = "HH:mm";
-
-  if (!end ) {
-    return `${format(start, `${dateFormat} ${timeFormat}`)} ~ ${format(start, `${dateFormat} ${timeFormat}`)}`;
-  }
-  return `${format(start, `${dateFormat} ${timeFormat}`)} ~ ${format(end, `${dateFormat} ${timeFormat}`)}`;
+  return `${formatJapanEventDate(start)}${end ? ` ~ ${formatJapanEventDate(end)}` : ""}`;
 };
 
 // 事件卡片组件
@@ -63,10 +62,8 @@ const EventCard = ({ event }: { event: Event }) => {
 
 // 获取事件数据
 async function getEvents(): Promise<Event[]> {
-  const res = await fetch("http://127.0.0.1:1337/api/events?populate=*");
-  const responseData = await res.json();
-
-  return responseData.data.map((event: any) => {
+  const events = await fetchAllEvents();
+  return events.map((event) => {
     const imageFormats = event.image?.[0]?.formats;
     const imageUrl =
       imageFormats?.large?.url ||
@@ -79,8 +76,8 @@ async function getEvents(): Promise<Event[]> {
       id: event.id,
       title: event.title || "無題",
       slug: event.slug || "no-slug",
-      startDate: event.startDate ? parseISO(event.startDate) : new Date(),
-      endDate: event.endDate ? parseISO(event.endDate) : undefined,
+      startDate: parseEventDate(event.startDate),
+      endDate: event.endDate ? parseEventDate(event.endDate) : undefined,
       location: event.location || "不明",
       imageUrl: imageUrl ? `${imageUrl}` : undefined,
     };
@@ -88,7 +85,7 @@ async function getEvents(): Promise<Event[]> {
 }
 
 export default async function EventsPage() {
-  const events = await getEvents();
+  const events = (await getEvents()).sort(compareEventDatesDesc);
 
   return (
     <div className="container mx-auto p-3 sm:p-6">
@@ -107,7 +104,7 @@ export default async function EventsPage() {
           <h1 className="text-3xl font-bold mb-8 text-gray-800">イベント情報</h1>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
-            {events.reverse().map((event) => (
+            {events.map((event) => (
               <EventCard key={event.id} event={event} />
             ))}
           </div>

@@ -1,7 +1,5 @@
 import SidebarCalendar from './SidebarCalendar';
-
-// API基础URL
-const API_BASE_URL = "http://127.0.0.1:1337";
+import { fetchAllEvents } from '../lib/events';
 
 // 事件接口定义
 export interface Event {
@@ -22,18 +20,10 @@ export interface Event {
  */
 async function getEvents(): Promise<Event[]> {
   try {
-    const res = await fetch(`${API_BASE_URL}/api/events?populate=*`, {
-      cache: "force-cache",
-    });
-
-    const data = await res.json();
-
-    // 确保data是数组，如果不是数组但有data属性是数组，则使用该属性
-    const eventsArray = Array.isArray(data) ? data : (data.data || []);
-    return eventsArray.map((event: any) => {
-      // 直接处理顶层属性的情况
-      if (event.id && event.title && event.startDate) {
-        return {
+    const eventsArray = await fetchAllEvents();
+    return eventsArray
+      .filter((event) => event.id && event.title && event.startDate)
+      .map((event) => ({
           id: event.id.toString(),
           title: event.title || "未命名事件",
           startDate: new Date(event.startDate),
@@ -45,11 +35,7 @@ async function getEvents(): Promise<Event[]> {
           imageUrl: event.image && Array.isArray(event.image) && event.image.length > 0
             ? `${event.image[0].url}`
             : undefined,
-        };
-      }
-
-
-    });
+      }));
   } catch (error) {
     console.error('获取事件数据失败:', error);
     return [];

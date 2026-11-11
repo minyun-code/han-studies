@@ -64,7 +64,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   const candidates = pathname.endsWith('/')
-    ? [path.join(filePath, 'index.html')]
+    ? [path.join(filePath, 'index.html'), `${filePath}.html`]
     : path.extname(filePath)
       ? [filePath]
       : [`${filePath}.html`, path.join(filePath, 'index.html')];

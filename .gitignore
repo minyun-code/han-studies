@@ -1,6 +1,7 @@
 # Local archives, original Git metadata, and private migration records
 /.local/
 /releases/
+/doc/
 
 # Dependencies and generated files in every project
 node_modules/
@@ -17,6 +18,9 @@ next-env.d.ts
 .strapi-updater.json
 .strapi-cloud.json
 
+# Generated frontend copies; source media stays in backend/public/uploads.
+/frontend/public/uploads/
+
 # Local environment and runtime data
 .env
 .env.*
@@ -26,7 +30,9 @@ next-env.d.ts
 *.db
 *.db-*
 *.sqlite
+*.sqlite-*
 *.sqlite3
+*.sqlite3-*
 !/backend/database/content-snapshot.sqlite
 *.log
 *.pid
@@ -48,3 +54,4 @@ Desktop.ini
 *.zip
 *.7z
 *.rar
+.waylog

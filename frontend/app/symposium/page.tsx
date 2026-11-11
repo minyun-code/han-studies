@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { format, parseISO } from "date-fns";
 import SidebarCalendar from "../components/SidebarCalendarWrapper";
+import { compareEventDatesDesc, fetchAllEvents, formatEventDate as formatJapanEventDate, parseEventDate } from "../lib/events";
 
 // 事件数据结构
 interface Event {
@@ -13,16 +13,11 @@ interface Event {
   imageUrl?: string;
 }
 
-const API_BASE_URL = "http://127.0.0.1:1337";
-
 // 获取事件数据
 async function getEvents(): Promise<Event[]> {
-  const res = await fetch(`${API_BASE_URL}/api/events?populate=*&filters[category][$eq]=symposium`, {
-    cache: "force-cache",
-  });
-  const data = await res.json();
+  const events = await fetchAllEvents("symposium");
 
-  return data.data.map((event: any) => {
+  return events.map((event) => {
     const imageFormats = event.image?.[0]?.formats;
     const imageUrl =
       imageFormats?.large?.url ||
@@ -35,23 +30,17 @@ async function getEvents(): Promise<Event[]> {
       id: event.id,
       title: event.title || "無題",
       slug: event.slug || "no-slug",
-      startDate: event.startDate ? parseISO(event.startDate) : new Date(),
-      endDate: event.endDate ? parseISO(event.endDate) : undefined,
+      startDate: event.startDate ? parseEventDate(event.startDate) : new Date(NaN),
+      endDate: event.endDate ? parseEventDate(event.endDate) : undefined,
       location: event.location || "不明",
       imageUrl: imageUrl ? `${imageUrl}` : undefined,
     };
-  });
+  }).sort(compareEventDatesDesc);
 }
 
 // 日期格式化工具
 const formatEventDate = (start: Date, end?: Date) => {
-  const dateFormat = "yyyy/MM/dd";
-  const timeFormat = "HH:mm";
-
-  if (!end ) {
-    return `${format(start, `${dateFormat} ${timeFormat}`)} ~ ${format(start, `${dateFormat} ${timeFormat}`)}`;
-  }
-  return `${format(start, `${dateFormat} ${timeFormat}`)} ~ ${format(end, `${dateFormat} ${timeFormat}`)}`;
+  return `${formatJapanEventDate(start)}${end ? ` ~ ${formatJapanEventDate(end)}` : ""}`;
 };
 
 // 事件卡片组件
@@ -59,7 +48,7 @@ const EventCard = ({ event }: { event: Event }) => {
   return (
     <div className="group relative border-0 p-5 rounded-2xl shadow-lg hover:shadow-2xl
                    transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
-                   bg-white hover:-translate-y-1.5 h-full flex flex-col">
+                   bg-white hover:-translate-y-1.5 h-full flex flex-col min-w-0">
       {event.imageUrl && (
         <div className="flex items-center justify-center h-44 rounded-xl overflow-hidden mb-4 bg-gray-50 p-2">
           <img
@@ -70,11 +59,11 @@ const EventCard = ({ event }: { event: Event }) => {
           />
         </div>
       )}
-      <h2 className="text-xl font-semibold mb-2">{event.title}</h2>
+      <h2 className="text-xl font-semibold mb-2 break-words">{event.title}</h2>
       <p className="text-gray-600 text-sm mb-2">{formatEventDate(event.startDate, event.endDate)}</p>
       <div className="flex items-start gap-2 text-gray-500 text-sm mb-4">
-        <img src="/images/didian.svg" alt="Location" className="w-4 h-4 mt-0.5" />
-        <span>{event.location}</span>
+        <img src="/images/didian.svg" alt="Location" className="w-4 h-4 mt-0.5 shrink-0" />
+        <span className="min-w-0 break-words">{event.location}</span>
       </div>
       <div className="mt-auto">
         <Link
@@ -110,7 +99,7 @@ export default async function SymposiumPage() {
         </aside>
 
         {/* 主要内容区域 */}
-        <div className="flex-1 order-1 lg:order-2">
+        <div className="min-w-0 flex-1 order-1 lg:order-2">
           <h1 className="text-3xl font-bold mb-8 text-gray-800">公開講座・シンポジウム</h1>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">

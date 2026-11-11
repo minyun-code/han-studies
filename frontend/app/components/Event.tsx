@@ -1,34 +1,21 @@
 import Link from "next/link";
 import Calendar from "./SidebarCalendarWrapper";
 import ScrollReveal from "./ScrollReveal";
-import { format } from "date-fns";
-import { ja } from "date-fns/locale";
 import Image from "next/image";
+import { compareEventDatesDesc, fetchAllEvents, toTokyoDateKey } from "../lib/events";
 
 interface Event {
   slug: string;
   id: number;
   title: string;
-  startDate: Date;
+  startDate: string;
 }
-
-const API_BASE_URL = "http://127.0.0.1:1337";
 
 // 获取事件数据
 async function getEvents(): Promise<Event[]> {
-  const res = await fetch(`${API_BASE_URL}/api/events?populate=*`, {
-    cache: "force-cache",
-  });
-  const data = await res.json();
-  return data.data
-    .filter((event: any) => event.startDate)
-    .reverse()
-    .map((event: any) => ({
-      id: event.id,
-      slug: event.slug,
-      title: event.title,
-      startDate: new Date(event.startDate),
-    }))
+  return (await fetchAllEvents())
+    .filter((event) => event.startDate && event.slug)
+    .sort(compareEventDatesDesc)
     .slice(0, 5);
 }
 
@@ -63,7 +50,7 @@ export default async function Events() {
             </div>
 
             {/* 活动列表 */}
-            <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-md p-10 border border-gray-300/50">
+            <div className="min-w-0 bg-white/90 backdrop-blur-md rounded-2xl shadow-md p-10 border border-gray-300/50">
               <h3 className="text-3xl font-Noto Serif Jp text-gray-900 mb-8">近日予定</h3>
 
               <ul className="space-y-6">
@@ -76,15 +63,15 @@ export default async function Events() {
                       <div className="relative flex-shrink-0">
                         <div className="w-14 h-14 bg-white rounded-lg shadow-md flex flex-col items-center justify-center border border-gray-300/70 transition-all group-hover:scale-110">
                           <time className="text-2xl font-bold text-gray-800">
-                            {format(new Date(event.startDate), "d")}
+                            {Number(toTokyoDateKey(event.startDate).slice(8, 10))}
                           </time>
                           <span className="text-xs text-gray-600 font-medium">
-                            {format(new Date(event.startDate), "MMM", { locale: ja })}
+                            {Number(toTokyoDateKey(event.startDate).slice(5, 7))}月
                           </span>
                         </div>
                       </div>
-                      <div className="flex-1">
-                        <h4 className="text-xl font-medium text-gray-900 group-hover:text-gray-700">
+                      <div className="min-w-0 flex-1">
+                        <h4 className="text-xl font-medium text-gray-900 group-hover:text-gray-700 break-words">
                           {event.title}
                           <span className="ml-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
                             ↗
