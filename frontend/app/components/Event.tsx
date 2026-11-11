@@ -85,7 +85,7 @@ export default async function Events() {
 
               <div className="mt-12 flex justify-end">
                 <Link
-                  href="news/events"
+                  href="/news/events"
                   className="px-6 py-3 bg-gradient-to-r from-gray-800 to-gray-600 rounded-xl text-white font-medium shadow-md hover:shadow-lg transition-all"
                 >
                   さらに詳しく

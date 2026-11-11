@@ -33,9 +33,6 @@ export default function AboutMain() {
           >
             <Link href={item.href} className="group">
               <div className="relative overflow-hidden rounded-xl border border-white/10 bg-white/30 backdrop-blur-xl transition-all duration-500 cursor-pointer group-hover:shadow-xl group-hover:scale-[1.015]">
-                {/* 水墨背景层 */}
-                <div className="absolute inset-0 bg-[url('/texture/chinese-ink.png')] opacity-10 mix-blend-soft-light" />
-
                 {/* 水墨晕开 hover 效果 */}
                 <div className="absolute inset-0 group-hover:bg-gradient-to-b from-white/10 to-transparent group-hover:blur-sm transition-all duration-500" />
 
