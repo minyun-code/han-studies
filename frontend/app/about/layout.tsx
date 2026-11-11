@@ -12,7 +12,7 @@ const navItems = [
 ];
 
 export default function AboutLayout({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
+  const pathname = usePathname().replace(/\/+$/, "") || "/";
   const [navPositions, setNavPositions] = useState<{ [key: string]: number }>({});
   const navRefs = useRef<{ [key: string]: HTMLLIElement | null }>({});
 

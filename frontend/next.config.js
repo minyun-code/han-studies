@@ -3,6 +3,7 @@ const { withAssetDownloader } = require('next-ssg-asset-downloader/dist');
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     output:'export',
+    trailingSlash: true,
     // 关闭源码映射生成
     productionBrowserSourceMaps: true,
     // 禁用类型检查（构建时）
